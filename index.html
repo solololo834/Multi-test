@@ -23,7 +23,6 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhenpvZG1hbHNucHZxbGxoeWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjI0MTAsImV4cCI6MjA5MjIzODQxMH0.mFbkD2UOFy9KI21z_o4hl5xI8Cd_SPJteIzPkC9t4MA';
 
   const { createClient } = supabase;
-  // Tambahin setting fetch buat bypass masalah cache/headers di localhost
   const client = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { persistSession: false }
   });
@@ -38,18 +37,8 @@
   const limitUp = 150;
 
   async function initGame() {
-    console.log("Mencoba koneksi...");
-    
-    // Test koneksi paling dasar
     const { data, error } = await client.from('players').select('id').limit(1);
-    if (error) {
-      console.error("KONEKSI GAGAL TOTAL:", error.message);
-      alert("Error: " + error.message + "\n\nCek Adblocker atau coba pake hotspot HP!");
-    } else {
-      console.log("✅ Database Connect!");
-    }
-
-    // Subscribe ke perubahan
+    
     client.channel('any')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, payload => {
         if (payload.new && payload.new.id !== myId) updateRemote(payload.new);
@@ -61,7 +50,11 @@
     if (!remotePlayers[data.id]) {
       const n = document.createElement('img');
       n.src = 'char.png';
-      n.style.position = 'fixed'; n.style.width = '50px'; n.style.zIndex = '4'; n.style.opacity = '0.5';
+      n.style.position = 'fixed';
+      n.style.width = '50px';
+      n.style.zIndex = '4';
+      n.style.opacity = '1';
+      n.style.transition = 'left 0.1s linear, top 0.1s linear'; 
       document.body.appendChild(n);
       remotePlayers[data.id] = n;
     }
@@ -70,7 +63,7 @@
   }
 
   let isDragging = false;
-  container.ontouchstart = () => isDragging = true;
+  container.ontouchstart = (e) => { isDragging = true; e.preventDefault(); };
   window.ontouchmove = e => {
     if (!isDragging) return;
     const t = e.touches[0];
@@ -88,7 +81,6 @@
   let sending = false;
   async function move(dx, dy) {
     charX += dx; charY += dy;
-    // Boundary check
     if (charY < limitUp) charY = limitUp;
     const ld = window.innerHeight - char.offsetHeight;
     if (charY > ld) charY = ld;
@@ -99,21 +91,16 @@
     char.style.left = charX + 'px';
     char.style.top = charY + 'px';
 
-    // Anti-Spam: Jangan kirim kalo request sebelumnya belum kelar
     if (!sending) {
       sending = true;
       try {
         await client.from('players').upsert({ id: myId, x: charX, y: charY });
-      } catch (e) {
-        console.error("Gagal kirim:", e);
-      }
-      setTimeout(() => { sending = false; }, 80); // Jeda 80ms
+      } catch (e) {}
+      setTimeout(() => { sending = false; }, 40); 
     }
   }
 
   initGame();
 </script>
-
 </body>
-  </html>
-  
+</html>
