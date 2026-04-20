@@ -37,7 +37,7 @@
   const limitUp = 150;
 
   async function initGame() {
-    const { data, error } = await client.from('players').select('id').limit(1);
+    await client.from('players').select('id').limit(1);
     
     client.channel('any')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, payload => {
@@ -54,7 +54,7 @@
       n.style.width = '50px';
       n.style.zIndex = '4';
       n.style.opacity = '1';
-      n.style.transition = 'left 0.1s linear, top 0.1s linear'; 
+      n.style.transition = 'left 0.05s linear, top 0.05s linear'; 
       document.body.appendChild(n);
       remotePlayers[data.id] = n;
     }
@@ -74,11 +74,14 @@
     const ang = Math.atan2(dy, dx);
     const sx = Math.cos(ang) * dist, sy = Math.sin(ang) * dist;
     stick.style.transform = `translate(${sx}px, ${sy}px)`;
-    move(sx/8, sy/8);
+    move(sx/6, sy/6);
   };
   window.ontouchend = () => { isDragging = false; stick.style.transform = `translate(0,0)`; };
 
+  let lastSentX = charX;
+  let lastSentY = charY;
   let sending = false;
+
   async function move(dx, dy) {
     charX += dx; charY += dy;
     if (charY < limitUp) charY = limitUp;
@@ -91,12 +94,16 @@
     char.style.left = charX + 'px';
     char.style.top = charY + 'px';
 
-    if (!sending) {
+    const distanceMoved = Math.sqrt(Math.pow(charX - lastSentX, 2) + Math.pow(charY - lastSentY, 2));
+
+    if (!sending && distanceMoved > 2) {
       sending = true;
+      lastSentX = charX;
+      lastSentY = charY;
       try {
         await client.from('players').upsert({ id: myId, x: charX, y: charY });
       } catch (e) {}
-      setTimeout(() => { sending = false; }, 40); 
+      setTimeout(() => { sending = false; }, 30); 
     }
   }
 
