@@ -23,9 +23,7 @@
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhenpvZG1hbHNucHZxbGxoeWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjI0MTAsImV4cCI6MjA5MjIzODQxMH0.mFbkD2UOFy9KI21z_o4hl5xI8Cd_SPJteIzPkC9t4MA';
 
   const { createClient } = supabase;
-  const client = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: false }
-  });
+  const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const char = document.getElementById('char');
   const stick = document.getElementById('joy-stick');
@@ -36,15 +34,9 @@
   let charX = 50, charY = 200;
   const limitUp = 150;
 
-  async function initGame() {
-    await client.from('players').select('id').limit(1);
-    
-    client.channel('any')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, payload => {
-        if (payload.new && payload.new.id !== myId) updateRemote(payload.new);
-      })
-      .subscribe();
-  }
+  const channel = client.channel('room_1', {
+    config: { broadcast: { ack: false, self: false } }
+  });
 
   function updateRemote(data) {
     if (!remotePlayers[data.id]) {
@@ -54,13 +46,19 @@
       n.style.width = '50px';
       n.style.zIndex = '4';
       n.style.opacity = '1';
-      n.style.transition = 'left 0.05s linear, top 0.05s linear'; 
+      n.style.transition = 'left 0.03s linear, top 0.03s linear'; 
       document.body.appendChild(n);
       remotePlayers[data.id] = n;
     }
     remotePlayers[data.id].style.left = data.x + 'px';
     remotePlayers[data.id].style.top = data.y + 'px';
   }
+
+  channel
+    .on('broadcast', { event: 'pos' }, ({ payload }) => {
+      updateRemote(payload);
+    })
+    .subscribe();
 
   let isDragging = false;
   container.ontouchstart = (e) => { isDragging = true; e.preventDefault(); };
@@ -78,11 +76,8 @@
   };
   window.ontouchend = () => { isDragging = false; stick.style.transform = `translate(0,0)`; };
 
-  let lastSentX = charX;
-  let lastSentY = charY;
-  let sending = false;
-
-  async function move(dx, dy) {
+  let lastSent = 0;
+  function move(dx, dy) {
     charX += dx; charY += dy;
     if (charY < limitUp) charY = limitUp;
     const ld = window.innerHeight - char.offsetHeight;
@@ -94,20 +89,16 @@
     char.style.left = charX + 'px';
     char.style.top = charY + 'px';
 
-    const distanceMoved = Math.sqrt(Math.pow(charX - lastSentX, 2) + Math.pow(charY - lastSentY, 2));
-
-    if (!sending && distanceMoved > 2) {
-      sending = true;
-      lastSentX = charX;
-      lastSentY = charY;
-      try {
-        await client.from('players').upsert({ id: myId, x: charX, y: charY });
-      } catch (e) {}
-      setTimeout(() => { sending = false; }, 30); 
+    const now = Date.now();
+    if (now - lastSent > 20) {
+      lastSent = now;
+      channel.send({
+        type: 'broadcast',
+        event: 'pos',
+        payload: { id: myId, x: charX, y: charY }
+      });
     }
   }
-
-  initGame();
 </script>
 </body>
 </html>
