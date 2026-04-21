@@ -1,144 +1,173 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Mabar Multiplayer</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Mabar Multiplayer</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
     body { margin: 0; overflow: hidden; touch-action: none; background: #f0f0f0; font-family: sans-serif; }
-    #grass { position: fixed; top: 128px; width: 800px; height: 150px; left: -10px; z-index: 1; pointer-events: none; }
+    #grass { position: fixed; top: 125px; width: 800px; height: 150px; left: -10px; z-index: 1; pointer-events: none; }
+    
+    /* Tombol UI */
+    #setbtn { position: fixed; top: 10px; right: 10px; width: 40px; z-index: 100; cursor: pointer; }
+    #chatbtn { position: fixed; top: 10px; right: 60px; width: 40px; z-index: 100; cursor: pointer; }
+
+    /* Karakter & Nama */
     #char { position: fixed; top: 200px; left: 50px; width: 50px; z-index: 5; }
+    #namedisp { position: fixed; z-index: 6; color: black; font-size: 14px; pointer-events: none; text-align: center; font-weight: bold; width: 100px; margin-left: -25px; /* Pusatkan nama di atas karakter */ }
+
+    /* Joystick */
     #joy-container { position: fixed; bottom: 50px; left: 50px; width: 100px; height: 100px; background: rgba(0,0,0,0.1); border-radius: 50%; z-index: 10; display: flex; align-items: center; justify-content: center; }
     #joy-stick { width: 40px; height: 40px; background: #333; border-radius: 50%; position: relative; }
-    
-    /* Perbaikan Overlay Chat */
+
+    /* Overlay Chat & Settings */
     #coverlay { 
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
         background-color: rgba(0, 0, 0, 0.7); z-index: 2005; 
-        display: none; /* Pakai display: none/flex bukan hidden attribute */
-        flex-direction: column; align-items: center; justify-content: center; gap: 20px; 
+        display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; 
     }
     #chat { width: 250px; padding: 10px; font-size: 16px; border-radius: 5px; border: none; }
-    #send { width: 100px; cursor: pointer; }
+    #send { width: 80px; cursor: pointer;  padding: 5px; border-radius: 5px; }
 
     #setconta { 
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
         background-color: rgba(0, 0, 0, 0.85); z-index: 2006; 
         display: none; flex-direction: column; align-items: center; justify-content: center; color: white; gap: 15px; 
     }
-    #chatbtn { position: fixed; width: 50px; z-index: 100; cursor: pointer; }
-    #setbtn { position: fixed; width: 80px; left: 655px; z-index: 5; cursor: pointer; }
-    #name { padding: 10px; font-size: 16px; }
-    #namedisp { position: fixed; z-index: 6; color: black; font-size: 14px; pointer-events: none; text-align: center; font-weight: bold; }
-    
+    #name { padding: 10px; font-size: 16px; text-align: center; border-radius: 5px; border: none; }
+    #setconta button { padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; border: none; }
+
     /* Notifikasi Chat */
     .chat-notif {
         position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8);
-        color: white; padding: 8px 15px; border-radius: 20px; z-index: 3000;
+        color: white; padding: 10px 15px; border-radius: 20px; z-index: 3000;
         font-size: 14px; animation: fadeout 4s forwards;
     }
     @keyframes fadeout { 0% {opacity: 1;} 80% {opacity: 1;} 100% {opacity: 0;} }
-</style>
+  </style>
 </head>
 <body>
-    <img src="setting.png" id="setbtn" />
-    <img src="chat.png" id="chatbtn" />
-    <img src="Tak berjudul1538_20260420120144.png" id="grass" />
-    
-    <div id="game-world">
-        <div id="namedisp">Guest</div>
-        <img src="char.png" id="char" />
-    </div>
+  <img src="setting.png" id="setbtn" alt="Settings"/>
+  <img src="chat.png" id="chatbtn" alt="Chat"/>
+  <img src="Tak berjudul1538_20260420120144.png" id="grass" />
 
-    <div id="joy-container"><div id="joy-stick"></div></div>
+  <div id="namedisp">Guest</div>
+  <img src="char.png" id="char" />
 
-    <div id="coverlay">
-        <input type="text" id="chat" placeholder="Tulis pesan...">
-        <img src="send.png" id="send" />
-    </div>
+  <div id="joy-container"><div id="joy-stick"></div></div>
 
-    <div id="setconta">
-        <h3>Ganti Nama</h3>
-        <input type="text" value="Guest" id="name">
-        <button onclick="document.getElementById('setconta').style.display='none'">Simpan</button>
-    </div>
+  <div id="coverlay">
+      <input type="text" id="chat" placeholder="Tulis pesan...">
+      <img src="send.png" id="send" alt="Send"/>
+  </div>
+
+  <div id="setconta">
+      <h3>Ganti Nama</h3>
+      <input type="text" value="Guest" id="name" maxlength="12">
+      <button onclick="document.getElementById('setconta').style.display='none'">Simpan</button>
+  </div>
 
 <script>
-const char = document.getElementById('char');
-const stick = document.getElementById('joy-stick');
-const container = document.getElementById('joy-container');
-const nameInput = document.getElementById("name");
-const namedisp = document.getElementById("namedisp");
-const chatInput = document.getElementById('chat');
-const sendBtn = document.getElementById('send');
-const coverlay = document.getElementById('coverlay');
-const setconta = document.getElementById('setconta');
-const chatbtn = document.getElementById('chatbtn');
-const setbtn = document.getElementById('setbtn');
+  // --- KONFIGURASI SUPABASE ---
+  const SUPABASE_URL = 'https://aazzodmalsnpvqllhyfd.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhenpvZG1hbHNucHZxbGxoeWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjI0MTAsImV4cCI6MjA5MjIzODQxMH0.mFbkD2UOFy9KI21z_o4hl5xI8Cd_SPJteIzPkC9t4MA';
 
-// --- SETUP SUPABASE ---
-const SUPABASE_URL = 'https://aazzodmalsnpvqllhyfd.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhenpvZG1hbHNucHZxbGxoeWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjI0MTAsImV4cCI6MjA5MjIzODQxMH0.mFbkD2UOFy9KI21z_o4hl5xI8Cd_SPJteIzPkC9t4MA';
+  const { createClient } = supabase;
+  const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const { createClient } = supabase;
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // --- VARIABEL GLOBAL ---
+  const char = document.getElementById('char');
+  const stick = document.getElementById('joy-stick');
+  const container = document.getElementById('joy-container');
+  const nameInput = document.getElementById("name");
+  const namedisp = document.getElementById("namedisp");
+  
+  const chatInput = document.getElementById('chat');
+  const sendBtn = document.getElementById('send');
+  const coverlay = document.getElementById('coverlay');
+  const setconta = document.getElementById('setconta');
+  const chatbtn = document.getElementById('chatbtn');
+  const setbtn = document.getElementById('setbtn');
 
-const myId = 'p_' + Math.random().toString(36).substr(2, 5);
-const remotePlayers = {};
-let charX = 50, charY = 200;
+  const myId = 'p_' + Math.random().toString(36).substr(2, 5);
+  const remotePlayers = {};
+  
+  let charX = 50, charY = 200;
+  const limitUp = 150;
+  let lastSent = 0;
 
-nameInput.addEventListener('input', () => { namedisp.textContent = nameInput.value; });
+  // --- UPDATE NAMA ---
+  nameInput.addEventListener('input', () => { 
+    namedisp.textContent = nameInput.value || "Guest"; 
+  });
 
-async function initGame() {
-    client.channel('main_room')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, payload => {
-            if (payload.new && payload.new.id !== myId) updateRemote(payload.new);
-        })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-            showChatNotification(payload.new);
-        })
-        .subscribe();
-}
+  // --- SETUP CHANNEL MULTIPLAYER ---
+  const channel = client.channel('room_1', {
+    config: { broadcast: { ack: false, self: false } }
+  });
 
-function updateRemote(data) {
+  // Dengerin pergerakan player lain (Broadcast)
+  channel.on('broadcast', { event: 'pos' }, ({ payload }) => {
+    updateRemote(payload);
+  });
+
+  // Dengerin chat baru (Database Insert)
+  client.channel('chat_listener')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+        showChatNotification(payload.new);
+    })
+    .subscribe();
+
+  channel.subscribe();
+
+  // --- RENDER PLAYER LAIN ---
+  function updateRemote(data) {
     if (!remotePlayers[data.id]) {
-        const wrapper = document.createElement('div');
-        wrapper.style.position = 'fixed';
-        wrapper.style.zIndex = '4';
-        
-        const pName = document.createElement('div');
-        pName.style.fontSize = '12px';
-        pName.style.textAlign = 'center';
-        pName.style.fontWeight = 'bold';
-        pName.textContent = data.name || "Guest";
-        
-        const n = document.createElement('img');
-        n.src = 'char.png';
-        n.style.width = '50px';
-        
-        wrapper.appendChild(pName);
-        wrapper.appendChild(n);
-        document.body.appendChild(wrapper);
-        remotePlayers[data.id] = { el: wrapper, nameTag: pName };
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'fixed';
+      wrapper.style.zIndex = '4';
+      wrapper.style.transition = 'left 0.03s linear, top 0.03s linear';
+
+      const pName = document.createElement('div');
+      pName.style.fontSize = '12px';
+      pName.style.textAlign = 'center';
+      pName.style.fontWeight = 'bold';
+      pName.style.width = '100px';
+      pName.style.marginLeft = '-25px'; 
+      pName.textContent = data.name || "Guest";
+
+      const n = document.createElement('img');
+      n.src = 'char.png';
+      n.style.width = '50px';
+
+      wrapper.appendChild(pName);
+      wrapper.appendChild(n);
+      document.body.appendChild(wrapper);
+      
+      remotePlayers[data.id] = { el: wrapper, nameTag: pName };
     }
+    
+    // Update posisi
     remotePlayers[data.id].el.style.left = data.x + 'px';
     remotePlayers[data.id].el.style.top = data.y + 'px';
+    // Update nama jika berubah
     remotePlayers[data.id].nameTag.textContent = data.name || "Guest";
-}
+  }
 
-function showChatNotification(data) {
+  // --- NOTIFIKASI CHAT ---
+  function showChatNotification(data) {
     const notif = document.createElement('div');
     notif.className = 'chat-notif';
     notif.textContent = `${data.player_name}: ${data.content}`;
     document.body.appendChild(notif);
     setTimeout(() => notif.remove(), 4000);
-}
+  }
 
-// --- MOVEMENT ---
-let isDragging = false;
-container.ontouchstart = (e) => { isDragging = true; e.preventDefault(); };
-window.ontouchmove = e => {
+  // --- KONTROL JOYSTICK ---
+  let isDragging = false;
+  container.ontouchstart = (e) => { isDragging = true; e.preventDefault(); };
+  window.ontouchmove = e => {
     if (!isDragging) return;
     const t = e.touches[0];
     const r = container.getBoundingClientRect();
@@ -149,68 +178,79 @@ window.ontouchmove = e => {
     const sx = Math.cos(ang) * dist, sy = Math.sin(ang) * dist;
     stick.style.transform = `translate(${sx}px, ${sy}px)`;
     move(sx/6, sy/6);
-};
-window.ontouchend = () => { isDragging = false; stick.style.transform = 'translate(0,0)'; };
+  };
+  window.ontouchend = () => { isDragging = false; stick.style.transform = `translate(0,0)`; };
 
-let lastSentX = charX, lastSentY = charY, sending = false;
+  // --- PERGERAKAN KARAKTER ---
+  function move(dx, dy) {
+    charX += dx; charY += dy;
+    
+    // Batasan layar
+    if (charY < limitUp) charY = limitUp;
+    const ld = window.innerHeight - char.offsetHeight;
+    if (charY > ld) charY = ld;
+    if (charX < 0) charX = 0;
+    const lr = window.innerWidth - char.offsetWidth;
+    if (charX > lr) charX = lr;
 
-async function move(dx, dy) {
-    charX = Math.max(0, Math.min(window.innerWidth - 50, charX + dx));
-    charY = Math.max(0, Math.min(window.innerHeight - 50, charY + dy));
+    // Terapkan ke elemen visual
     char.style.left = charX + 'px';
     char.style.top = charY + 'px';
-    namedisp.style.left = (charX + 25 - namedisp.offsetWidth / 2) + "px";
-    namedisp.style.top = (charY - 25) + "px";
-
-    if (!sending && Math.hypot(charX - lastSentX, charY - lastSentY) > 5) {
-        sending = true;
-        lastSentX = charX; lastSentY = charY;
-        try {
-            await client.from('players').upsert({ id: myId, x: charX, y: charY, name: namedisp.textContent });
-        } catch (e) {}
-        sending = false;
-    }
-}
-
-// --- UI LOGIC ---
-chatbtn.onclick = () => {
-    coverlay.style.display = (coverlay.style.display === 'flex') ? 'none' : 'flex';
-    if(coverlay.style.display === 'flex') chatInput.focus();
-};
-
-setbtn.onclick = () => {
-    setconta.style.display = (setconta.style.display === 'flex') ? 'none' : 'flex';
-};
-
-async function sendChatMessage() {
-    const text = chatInput.value.trim();
-    if (!text) return;
-
-    // Menonaktifkan sementara tombol agar tidak spam
-    sendBtn.style.opacity = "0.5";
-    sendBtn.style.pointerEvents = "none";
-
-    const { error } = await client.from('messages').insert([
-        { player_id: myId, player_name: namedisp.textContent, content: text }
-    ]);
-
-    if (error) {
-        // INI YANG PENTING: Biar ketahuan errornya apa!
-        alert("GAGAL! Alasan: " + error.message); 
-    } else {
-        chatInput.value = "";
-        coverlay.style.display = 'none';
-    }
     
-    sendBtn.style.opacity = "1";
-    sendBtn.style.pointerEvents = "auto";
-}
+    // Terapkan ke nama player lokal
+    namedisp.style.left = charX + 'px';
+    namedisp.style.top = (charY - 20) + 'px';
 
+    // Broadcast posisi ke player lain (Optimal: tiap 30ms)
+    const now = Date.now();
+    if (now - lastSent > 30) {
+      lastSent = now;
+      channel.send({
+        type: 'broadcast',
+        event: 'pos',
+        payload: { id: myId, x: charX, y: charY, name: namedisp.textContent }
+      });
+    }
+  }
 
-sendBtn.onclick = sendChatMessage;
-chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendChatMessage(); };
+  // Set posisi awal nama
+  namedisp.style.left = charX + 'px';
+  namedisp.style.top = (charY - 20) + 'px';
 
-initGame();
+  // --- LOGIKA UI & CHAT ---
+  chatbtn.onclick = () => {
+      coverlay.style.display = (coverlay.style.display === 'flex') ? 'none' : 'flex';
+      if(coverlay.style.display === 'flex') chatInput.focus();
+  };
+
+  setbtn.onclick = () => {
+      setconta.style.display = (setconta.style.display === 'flex') ? 'none' : 'flex';
+  };
+
+  async function sendChatMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      sendBtn.style.opacity = "0.5";
+      sendBtn.style.pointerEvents = "none";
+
+      const { error } = await client.from('messages').insert([
+          { player_id: myId, player_name: namedisp.textContent, content: text }
+      ]);
+
+      if (error) {
+          alert("Gagal kirim pesan: " + error.message); 
+      } else {
+          chatInput.value = "";
+          coverlay.style.display = 'none';
+      }
+
+      sendBtn.style.opacity = "1";
+      sendBtn.style.pointerEvents = "auto";
+  }
+
+  sendBtn.onclick = sendChatMessage;
+  chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendChatMessage(); };
 </script>
 </body>
 </html>
