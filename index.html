@@ -3,25 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Mabar Multiplayer</title>
+  <title>Multiplayer</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { margin: 0; overflow: hidden; touch-action: none; background: #f0f0f0; font-family: sans-serif; }
     #grass { position: fixed; top: 125px; width: 800px; height: 150px; left: -10px; z-index: 1; pointer-events: none; }
     
-    /* Tombol UI */
-    #setbtn { position: fixed; top: 10px; right: 10px; width: 40px; z-index: 100; cursor: pointer; }
-    #chatbtn { position: fixed; top: 10px; right: 60px; width: 40px; z-index: 100; cursor: pointer; }
+    #setbtn { position: fixed; top: 10px; right: 10px; width: 40px; z-index: 3000; cursor: pointer; }
+    #chatbtn { position: fixed; top: 10px; right: 60px; width: 40px; z-index: 3000; cursor: pointer; }
 
-    /* Karakter & Nama */
     #char { position: fixed; top: 200px; left: 50px; width: 50px; z-index: 5; }
-    #namedisp { position: fixed; z-index: 6; color: black; font-size: 14px; pointer-events: none; text-align: center; font-weight: bold; width: 100px; margin-left: -25px; /* Pusatkan nama di atas karakter */ }
+    #namedisp { position: fixed; z-index: 6; color: black; font-size: 14px; pointer-events: none; text-align: center; font-weight: bold; width: 100px; margin-left: -25px; }
 
-    /* Joystick */
     #joy-container { position: fixed; bottom: 50px; left: 50px; width: 100px; height: 100px; background: rgba(0,0,0,0.1); border-radius: 50%; z-index: 10; display: flex; align-items: center; justify-content: center; }
     #joy-stick { width: 40px; height: 40px; background: #333; border-radius: 50%; position: relative; }
 
-    /* Overlay Chat & Settings */
     #coverlay { 
         position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
         background-color: rgba(0, 0, 0, 0.7); z-index: 2005; 
@@ -35,16 +31,61 @@
         background-color: rgba(0, 0, 0, 0.85); z-index: 2006; 
         display: none; flex-direction: column; align-items: center; justify-content: center; color: white; gap: 15px; 
     }
-    #name { padding: 10px; font-size: 16px; text-align: center; border-radius: 5px; border: none; }
+    #playerName { padding: 10px; font-size: 16px; text-align: center; border-radius: 5px; border: none; }
     #setconta button { padding: 10px 20px; font-size: 16px; cursor: pointer; border-radius: 5px; border: none; }
 
-    /* Notifikasi Chat */
     .chat-notif {
         position: fixed; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8);
         color: white; padding: 10px 15px; border-radius: 20px; z-index: 3000;
         font-size: 14px; animation: fadeout 4s forwards;
     }
     @keyframes fadeout { 0% {opacity: 1;} 80% {opacity: 1;} 100% {opacity: 0;} }
+    
+    #chat-history {
+        position: fixed;
+        top: -60px;
+        right: 450px;
+        width: 250px;
+        height: 300px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 8px;
+        padding: 10px;
+        overflow-y: auto;
+        z-index: 3000;
+        display: none;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: auto;
+        backdrop-filter: blur(2px);
+    }
+
+    #chat-history::-webkit-scrollbar { width: 5px; }
+    #chat-history::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 5px; }
+
+    .chat-msg {
+        background: rgba(255, 255, 255, 0.15);
+        padding: 8px;
+        border-radius: 6px;
+        color: white;
+        font-size: 13px;
+        word-wrap: break-word;
+    }
+
+    .chat-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+        font-size: 11px;
+    }
+
+    .chat-sender {
+        font-weight: bold;
+        color: #ffeb3b;
+    }
+
+    .chat-time {
+        color: #ddd;
+    }
   </style>
 </head>
 <body>
@@ -64,23 +105,23 @@
 
   <div id="setconta">
       <h3>Ganti Nama</h3>
-      <input type="text" value="Guest" id="name" maxlength="12">
+      <input type="text" value="Guest" id="playerName" maxlength="12">
       <button onclick="document.getElementById('setconta').style.display='none'">Simpan</button>
   </div>
+<div id="chat-history"></div>
 
 <script>
-  // --- KONFIGURASI SUPABASE ---
   const SUPABASE_URL = 'https://aazzodmalsnpvqllhyfd.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFhenpvZG1hbHNucHZxbGxoeWZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NjI0MTAsImV4cCI6MjA5MjIzODQxMH0.mFbkD2UOFy9KI21z_o4hl5xI8Cd_SPJteIzPkC9t4MA';
 
   const { createClient } = supabase;
   const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // --- VARIABEL GLOBAL ---
+  const chatHistoryEl = document.getElementById('chat-history');
   const char = document.getElementById('char');
   const stick = document.getElementById('joy-stick');
   const container = document.getElementById('joy-container');
-  const nameInput = document.getElementById("name");
+  const nameInput = document.getElementById("playerName"); 
   const namedisp = document.getElementById("namedisp");
   
   const chatInput = document.getElementById('chat');
@@ -97,31 +138,114 @@
   const limitUp = 150;
   let lastSent = 0;
 
-  // --- UPDATE NAMA ---
+  
+  namedisp.style.left = charX + 'px';
+  namedisp.style.top = (charY - 20) + 'px';
+
   nameInput.addEventListener('input', () => { 
     namedisp.textContent = nameInput.value || "Guest"; 
   });
 
-  // --- SETUP CHANNEL MULTIPLAYER ---
+  
+  chatbtn.onclick = () => {
+      if (coverlay.style.display === 'flex') {
+          coverlay.style.display = 'none';
+          chatHistoryEl.style.display = 'none';
+      } else {
+          coverlay.style.display = 'flex';
+          chatHistoryEl.style.display = 'flex';
+          chatInput.focus();
+      }
+  };
+
+  setbtn.onclick = () => {
+      setconta.style.display = (setconta.style.display === 'flex') ? 'none' : 'flex';
+  };
+
+  
+  function appendMessageToHistory(data) {
+      const date = data.created_at ? new Date(data.created_at) : new Date();
+      const timeString = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'chat-msg';
+      msgDiv.innerHTML = `
+          <div class="chat-header">
+              <span class="chat-sender">${data.player_name || 'Guest'}</span>
+              <span class="chat-time">${timeString}</span>
+          </div>
+          <div class="chat-content">${data.content}</div>
+      `;
+      chatHistoryEl.appendChild(msgDiv);
+      chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+  }
+
+  async function loadChatHistory() {
+      const { data, error } = await client
+          .from('messages')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20); 
+
+      if (data && !error) {
+          data.reverse().forEach(msg => appendMessageToHistory(msg));
+      } else if (error) {
+          console.error("Gagal load riwayat chat:", error.message);
+      }
+  }
+  loadChatHistory();
+
+  function showChatNotification(data) {
+    const notif = document.createElement('div');
+    notif.className = 'chat-notif';
+    notif.textContent = `${data.player_name}: ${data.content}`;
+    document.body.appendChild(notif);
+    setTimeout(() => notif.remove(), 4000);
+  }
+
+  async function sendChatMessage() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      sendBtn.style.opacity = "0.5";
+      sendBtn.style.pointerEvents = "none";
+
+      const { error } = await client.from('messages').insert([
+          { player_id: myId, player_name: namedisp.textContent, content: text }
+      ]);
+
+      if (error) {
+          alert("Gagal kirim pesan: " + error.message); 
+      } else {
+          chatInput.value = "";
+          coverlay.style.display = 'none';
+          chatHistoryEl.style.display = 'none';
+      }
+
+      sendBtn.style.opacity = "1";
+      sendBtn.style.pointerEvents = "auto";
+  }
+
+  sendBtn.onclick = sendChatMessage;
+  chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendChatMessage(); };
+
+  
+  client.channel('chat_listener')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+        showChatNotification(payload.new);
+        appendMessageToHistory(payload.new);
+    })
+    .subscribe();
+
   const channel = client.channel('room_1', {
     config: { broadcast: { ack: false, self: false } }
   });
 
-  // Dengerin pergerakan player lain (Broadcast)
   channel.on('broadcast', { event: 'pos' }, ({ payload }) => {
     updateRemote(payload);
   });
-
-  // Dengerin chat baru (Database Insert)
-  client.channel('chat_listener')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-        showChatNotification(payload.new);
-    })
-    .subscribe();
-
   channel.subscribe();
 
-  // --- RENDER PLAYER LAIN ---
   function updateRemote(data) {
     if (!remotePlayers[data.id]) {
       const wrapper = document.createElement('div');
@@ -148,44 +272,55 @@
       remotePlayers[data.id] = { el: wrapper, nameTag: pName };
     }
     
-    // Update posisi
     remotePlayers[data.id].el.style.left = data.x + 'px';
     remotePlayers[data.id].el.style.top = data.y + 'px';
-    // Update nama jika berubah
     remotePlayers[data.id].nameTag.textContent = data.name || "Guest";
   }
 
-  // --- NOTIFIKASI CHAT ---
-  function showChatNotification(data) {
-    const notif = document.createElement('div');
-    notif.className = 'chat-notif';
-    notif.textContent = `${data.player_name}: ${data.content}`;
-    document.body.appendChild(notif);
-    setTimeout(() => notif.remove(), 4000);
-  }
-
-  // --- KONTROL JOYSTICK ---
+  
   let isDragging = false;
-  container.ontouchstart = (e) => { isDragging = true; e.preventDefault(); };
-  window.ontouchmove = e => {
-    if (!isDragging) return;
-    const t = e.touches[0];
-    const r = container.getBoundingClientRect();
-    const cx = r.left + r.width/2, cy = r.top + r.height/2;
-    let dx = t.clientX - cx, dy = t.clientY - cy;
-    const dist = Math.min(50, Math.sqrt(dx*dx + dy*dy));
-    const ang = Math.atan2(dy, dx);
-    const sx = Math.cos(ang) * dist, sy = Math.sin(ang) * dist;
-    stick.style.transform = `translate(${sx}px, ${sy}px)`;
-    move(sx/6, sy/6);
-  };
-  window.ontouchend = () => { isDragging = false; stick.style.transform = `translate(0,0)`; };
 
-  // --- PERGERAKAN KARAKTER ---
+  const startDrag = (e) => { 
+      isDragging = true; 
+      e.preventDefault(); 
+  };
+  const endDrag = () => { 
+      isDragging = false; 
+      stick.style.transform = `translate(0,0)`; 
+  };
+  const onDrag = (e) => {
+      if (!isDragging) return;
+      
+      let clientX = e.clientX;
+      let clientY = e.clientY;
+      if (e.touches && e.touches.length > 0) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+      }
+
+      const r = container.getBoundingClientRect();
+      const cx = r.left + r.width/2, cy = r.top + r.height/2;
+      let dx = clientX - cx, dy = clientY - cy;
+      const dist = Math.min(50, Math.sqrt(dx*dx + dy*dy));
+      const ang = Math.atan2(dy, dx);
+      const sx = Math.cos(ang) * dist, sy = Math.sin(ang) * dist;
+      
+      stick.style.transform = `translate(${sx}px, ${sy}px)`;
+      move(sx/6, sy/6);
+  };
+
+  container.addEventListener('touchstart', startDrag, { passive: false });
+  container.addEventListener('mousedown', startDrag);
+  
+  window.addEventListener('touchmove', onDrag, { passive: false });
+  window.addEventListener('mousemove', onDrag);
+  
+  window.addEventListener('touchend', endDrag);
+  window.addEventListener('mouseup', endDrag);
+
   function move(dx, dy) {
     charX += dx; charY += dy;
     
-    // Batasan layar
     if (charY < limitUp) charY = limitUp;
     const ld = window.innerHeight - char.offsetHeight;
     if (charY > ld) charY = ld;
@@ -193,15 +328,12 @@
     const lr = window.innerWidth - char.offsetWidth;
     if (charX > lr) charX = lr;
 
-    // Terapkan ke elemen visual
     char.style.left = charX + 'px';
     char.style.top = charY + 'px';
     
-    // Terapkan ke nama player lokal
     namedisp.style.left = charX + 'px';
     namedisp.style.top = (charY - 20) + 'px';
 
-    // Broadcast posisi ke player lain (Optimal: tiap 30ms)
     const now = Date.now();
     if (now - lastSent > 30) {
       lastSent = now;
@@ -212,45 +344,6 @@
       });
     }
   }
-
-  // Set posisi awal nama
-  namedisp.style.left = charX + 'px';
-  namedisp.style.top = (charY - 20) + 'px';
-
-  // --- LOGIKA UI & CHAT ---
-  chatbtn.onclick = () => {
-      coverlay.style.display = (coverlay.style.display === 'flex') ? 'none' : 'flex';
-      if(coverlay.style.display === 'flex') chatInput.focus();
-  };
-
-  setbtn.onclick = () => {
-      setconta.style.display = (setconta.style.display === 'flex') ? 'none' : 'flex';
-  };
-
-  async function sendChatMessage() {
-      const text = chatInput.value.trim();
-      if (!text) return;
-
-      sendBtn.style.opacity = "0.5";
-      sendBtn.style.pointerEvents = "none";
-
-      const { error } = await client.from('messages').insert([
-          { player_id: myId, player_name: namedisp.textContent, content: text }
-      ]);
-
-      if (error) {
-          alert("Gagal kirim pesan: " + error.message); 
-      } else {
-          chatInput.value = "";
-          coverlay.style.display = 'none';
-      }
-
-      sendBtn.style.opacity = "1";
-      sendBtn.style.pointerEvents = "auto";
-  }
-
-  sendBtn.onclick = sendChatMessage;
-  chatInput.onkeypress = (e) => { if (e.key === 'Enter') sendChatMessage(); };
 </script>
 </body>
 </html>
